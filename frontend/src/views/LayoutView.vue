@@ -1,15 +1,8 @@
-<!-- src/views/LayoutView.vue -->
 <template>
   <el-container class="layout-container">
     <el-aside width="200px" class="sidebar">
       <div class="logo">OURERP</div>
-      <el-menu
-        :default-active="$route.path"
-        router
-        background-color="#304156"
-        text-color="#fff"
-        active-text-color="#409EFF"
-      >
+      <el-menu :default-active="$route.path" router background-color="#304156" text-color="#fff" active-text-color="#409EFF">
         <el-menu-item index="/dashboard">
           <el-icon><Odometer /></el-icon>
           <span>数据概览</span>
@@ -65,14 +58,8 @@ const handleCommand = (command: string) => {
 </script>
 
 <style scoped>
-.layout-container {
-  height: 100vh;
-}
-
-.sidebar {
-  background-color: #304156;
-}
-
+.layout-container { height: 100vh; }
+.sidebar { background-color: #304156; }
 .logo {
   height: 60px;
   line-height: 60px;
@@ -82,7 +69,6 @@ const handleCommand = (command: string) => {
   font-weight: bold;
   border-bottom: 1px solid #1f2d3d;
 }
-
 .header {
   background-color: #fff;
   box-shadow: 0 1px 4px rgba(0,21,41,.08);
@@ -90,14 +76,6 @@ const handleCommand = (command: string) => {
   align-items: center;
   justify-content: flex-end;
 }
-
-.user-info {
-  cursor: pointer;
-  color: #606266;
-}
-
-.main-content {
-  background-color: #f0f2f5;
-  padding: 20px;
-}
+.user-info { cursor: pointer; color: #606266; }
+.main-content { background-color: #f0f2f5; padding: 20px; }
 </style>
