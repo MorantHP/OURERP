@@ -46,3 +46,65 @@ go get -u github.com/hibiken/asynq
 
 # 整理依赖
 go mod tidy
+
+OURERP/
+├── backend/
+│   ├── cmd/
+│   │   ├── server/           # 主服务
+│   │   └── mock/             # 模拟数据生成器
+│   │       └── main.go
+│   └── internal/
+│       └── mock/             # 模拟数据模块
+│           ├── generator.go  # 订单生成器
+│           ├── data.go       # 模拟数据
+│           └── api.go        # 模拟API
+
+# 1. 确保数据库运行
+cd ~/下载/projects/OURERP
+docker-compose ps
+
+# 2. 启动后端
+cd backend
+go mod tidy
+go run cmd/server/main.go
+
+# 3. 新终端启动前端
+cd frontend
+npm run dev
+
+# 4. 访问 http://localhost:5173
+# 注册账号 -> 登录 -> 查看订单页面
+
+cd ~/下载/projects/OURERP/backend
+
+# 1. 安装依赖
+go mod tidy
+
+# 2. 启动后端
+go run cmd/server/main.go
+
+# 3. 新终端，生成测试数据
+go run cmd/mock/main.go generate
+
+# 4. 查看生成的订单
+go run cmd/mock/main.go list
+
+# 5. 启动实时生成（可选）
+go run cmd/mock/main.go realtime
+
+# 1. 启动所有服务
+cd ~/下载/projects/OURERP
+docker-compose up -d postgres redis
+
+cd backend
+go run cmd/server/main.go
+
+# 2. 新终端生成数据
+cd backend
+go run cmd/mock/main.go generate
+
+# 3. 前端查看
+cd frontend
+npm run dev
+# 访问 http://localhost:5173
+# 登录后查看订单列表，应该有100个模拟订单
