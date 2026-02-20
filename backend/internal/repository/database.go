@@ -1,4 +1,3 @@
-// internal/repository/database.go
 package repository
 
 import (
@@ -14,7 +13,7 @@ import (
 var DB *gorm.DB
 
 func InitDB(cfg *config.DatabaseConfig) *gorm.DB {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s client_encoding=UTF8",
 		cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{

@@ -24,9 +24,38 @@ profile.cov
 go.work
 go.work.sum
 
-# env file
+# env files
 .env
+.env.local
+.env.*.local
 
-# Editor/IDE
-# .idea/
-# .vscode/
+# Database files - 不应提交到代码库
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# IDE/Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Node modules
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/

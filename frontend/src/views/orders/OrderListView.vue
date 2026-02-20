@@ -294,19 +294,3 @@ onMounted(fetchOrders)
   justify-content: flex-end;
 }
 </style>
-// 在 toolbar 中添加
-<el-button type="warning" :icon="Plus" @click="generateMockData">生成测试数据</el-button>
-
-// 在 script 中添加
-import { mockApi } from '@/api/mock'
-
-const generateMockData = async () => {
-  try {
-    await ElMessageBox.confirm('生成100个测试订单？', '提示')
-    await mockApi.generateOrders(100, 'taobao', 1)
-    ElMessage.success('生成成功')
-    fetchOrders()
-  } catch (error) {
-    // 取消
-  }
-}

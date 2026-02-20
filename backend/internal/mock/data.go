@@ -1,10 +1,5 @@
 package mock
 
-import (
-	"math/rand"
-	"time"
-)
-
 // 模拟商品库
 var MockProducts = []struct {
 	SkuID    int64

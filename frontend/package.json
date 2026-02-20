@@ -19,9 +19,11 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
     "axios": "^1.13.5",
+    "echarts": "^6.0.0",
     "element-plus": "^2.13.2",
     "pinia": "^3.0.4",
     "vue": "beta",
+    "vue-echarts": "^8.0.1",
     "vue-router": "^5.0.1"
   },
   "devDependencies": {
@@ -46,7 +48,7 @@
     "oxfmt": "^0.27.0",
     "oxlint": "~1.42.0",
     "typescript": "~5.9.3",
-    "vite": "beta",
+    "vite": "^7.3.1",
     "vite-plugin-vue-devtools": "^8.0.5",
     "vitest": "^4.0.18",
     "vue-tsc": "^3.2.4"

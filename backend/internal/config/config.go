@@ -2,6 +2,10 @@
 package config
 
 import (
+	"log"
+	"os"
+
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
@@ -41,19 +45,30 @@ type JWTConfig struct {
 
 var GlobalConfig *Config
 
+// getEnvOrDefault 获取环境变量，如果不存在则返回默认值
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 func Load() *Config {
-	viper.SetDefault("ENV", "development")
+	// 从.env文件加载环境变量
+	if err := godotenv.Load(); err != nil {
+		log.Println("未找到.env文件，使用系统环境变量")
+	}
+
+	// 设置默认值（非敏感信息）
 	viper.SetDefault("SERVER_HOST", "0.0.0.0")
 	viper.SetDefault("SERVER_PORT", "8080")
 	viper.SetDefault("DB_HOST", "localhost")
 	viper.SetDefault("DB_PORT", "5432")
 	viper.SetDefault("DB_USER", "ourerp")
-	viper.SetDefault("DB_PASSWORD", "ourerp123")
 	viper.SetDefault("DB_NAME", "ourerp")
 	viper.SetDefault("DB_SSLMODE", "disable")
 	viper.SetDefault("REDIS_HOST", "localhost")
 	viper.SetDefault("REDIS_PORT", "6379")
-	viper.SetDefault("JWT_SECRET", "your-secret-key")
 	viper.SetDefault("JWT_EXPIRE", 24)
 
 	viper.AutomaticEnv()

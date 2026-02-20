@@ -1,0 +1,442 @@
+{
+  "info": {
+    "name": "OURERP 数据中心 API",
+    "description": "数据中心模块API测试集合",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "your-jwt-token-here",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "实时监控",
+      "item": [
+        {
+          "name": "获取实时概览",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/realtime/overview",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "realtime", "overview"]
+            }
+          }
+        },
+        {
+          "name": "获取实时库存状态",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/realtime/inventory",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "realtime", "inventory"]
+            }
+          }
+        },
+        {
+          "name": "获取小时趋势",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/realtime/hourly-trend",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "realtime", "hourly-trend"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "客户分析",
+      "item": [
+        {
+          "name": "获取客户分析",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/customers/analysis?start_date=2025-01-01&end_date=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "customers", "analysis"],
+              "query": [
+                {"key": "start_date", "value": "2025-01-01"},
+                {"key": "end_date", "value": "2025-12-31"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "获取客户价值分布",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/customers/value-distribution",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "customers", "value-distribution"]
+            }
+          }
+        },
+        {
+          "name": "获取地域分布",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/customers/geography?start_date=2025-01-01&end_date=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "customers", "geography"],
+              "query": [
+                {"key": "start_date", "value": "2025-01-01"},
+                {"key": "end_date", "value": "2025-12-31"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "获取城市分布",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/customers/city?province=广东&start_date=2025-01-01&end_date=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "customers", "city"],
+              "query": [
+                {"key": "province", "value": "广东"},
+                {"key": "start_date", "value": "2025-01-01"},
+                {"key": "end_date", "value": "2025-12-31"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "获取复购分析",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/customers/repurchase?start_date=2025-01-01&end_date=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "customers", "repurchase"],
+              "query": [
+                {"key": "start_date", "value": "2025-01-01"},
+                {"key": "end_date", "value": "2025-12-31"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "商品分析",
+      "item": [
+        {
+          "name": "获取商品动销率",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/products/turnover?start_date=2025-01-01&end_date=2025-12-31&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "products", "turnover"],
+              "query": [
+                {"key": "start_date", "value": "2025-01-01"},
+                {"key": "end_date", "value": "2025-12-31"},
+                {"key": "limit", "value": "50"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "获取库存水位",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/products/inventory-level",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "products", "inventory-level"]
+            }
+          }
+        },
+        {
+          "name": "获取进货策略",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/products/purchase-strategy?days=30",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "products", "purchase-strategy"],
+              "query": [
+                {"key": "days", "value": "30"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "获取低库存商品",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/products/low-stock",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "products", "low-stock"]
+            }
+          }
+        },
+        {
+          "name": "获取库存汇总",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/products/inventory-summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "products", "inventory-summary"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "对比分析",
+      "item": [
+        {
+          "name": "期间对比",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/compare/period?current_start_date=2025-01-01&current_end_date=2025-06-30&compare_start_date=2024-01-01&compare_end_date=2024-06-30",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "compare", "period"],
+              "query": [
+                {"key": "current_start_date", "value": "2025-01-01"},
+                {"key": "current_end_date", "value": "2025-06-30"},
+                {"key": "compare_start_date", "value": "2024-01-01"},
+                {"key": "compare_end_date", "value": "2024-06-30"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "同比分析",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/compare/yoy?start_date=2025-01-01&end_date=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "compare", "yoy"],
+              "query": [
+                {"key": "start_date", "value": "2025-01-01"},
+                {"key": "end_date", "value": "2025-12-31"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "环比分析",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/compare/mom?start_date=2025-01-01&end_date=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "compare", "mom"],
+              "query": [
+                {"key": "start_date", "value": "2025-01-01"},
+                {"key": "end_date", "value": "2025-12-31"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "店铺对比",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/compare/shop?shop_ids=1,2,3&start_date=2025-01-01&end_date=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "compare", "shop"],
+              "query": [
+                {"key": "shop_ids", "value": "1,2,3"},
+                {"key": "start_date", "value": "2025-01-01"},
+                {"key": "end_date", "value": "2025-12-31"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "平台对比",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/compare/platform?start_date=2025-01-01&end_date=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "compare", "platform"],
+              "query": [
+                {"key": "start_date", "value": "2025-01-01"},
+                {"key": "end_date", "value": "2025-12-31"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "预警管理",
+      "item": [
+        {
+          "name": "获取预警类型",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/alerts/types",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "alerts", "types"]
+            }
+          }
+        },
+        {
+          "name": "获取预警级别",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/alerts/levels",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "alerts", "levels"]
+            }
+          }
+        },
+        {
+          "name": "获取预警汇总",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/alerts/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "alerts", "summary"]
+            }
+          }
+        },
+        {
+          "name": "获取预警规则列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/alerts/rules?page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "alerts", "rules"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "page_size", "value": "20"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "创建预警规则",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"库存预警规则\",\n  \"type\": \"inventory\",\n  \"threshold\": 10,\n  \"level\": \"warning\",\n  \"notify_type\": \"system\",\n  \"description\": \"当库存低于10时触发预警\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/alerts/rules",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "alerts", "rules"]
+            }
+          }
+        },
+        {
+          "name": "获取预警记录列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/alerts/records?page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "alerts", "records"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "page_size", "value": "20"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "处理预警记录",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"已处理，补货中\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/alerts/records/1/handle",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "alerts", "records", "1", "handle"]
+            }
+          }
+        },
+        {
+          "name": "检查预警",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/datacenter/alerts/check",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "datacenter", "alerts", "check"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
