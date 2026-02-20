@@ -2,6 +2,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -51,6 +52,17 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// Validate 验证配置
+func (c *Config) Validate() error {
+	if c.JWT.Secret == "" {
+		return fmt.Errorf("JWT_SECRET 环境变量必须设置")
+	}
+	if len(c.JWT.Secret) < 32 {
+		return fmt.Errorf("JWT_SECRET 长度必须至少32个字符")
+	}
+	return nil
 }
 
 func Load() *Config {

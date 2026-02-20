@@ -22,11 +22,17 @@ func (h *OrderHandler) ListOrders(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "20"))
 
+	// 限制最大分页大小
+	if size > 100 {
+		size = 100
+	}
+
 	status := c.Query("status")
 	platform := c.Query("platform")
 	keyword := c.Query("keyword")
 
-	orders, total, err := h.orderRepo.List(page, size, status, platform, keyword)
+	// 使用带租户上下文的方法
+	orders, total, err := h.orderRepo.ListWithContext(c.Request.Context(), page, size, status, platform, keyword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
 		return
@@ -45,7 +51,9 @@ func (h *OrderHandler) ListOrders(c *gin.Context) {
 
 func (h *OrderHandler) GetOrder(c *gin.Context) {
 	id := c.Param("id")
-	order, err := h.orderRepo.FindByOrderNo(id)
+
+	// 使用带租户上下文的方法
+	order, err := h.orderRepo.FindByOrderNoWithContext(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "订单不存在"})
 		return
@@ -57,7 +65,7 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	tenantID := middleware.GetTenantIDFromGin(c)
 	if tenantID == 0 {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "未授权"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请选择账套"})
 		return
 	}
 
@@ -93,7 +101,8 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		}
 	}
 
-	if err := h.orderRepo.Create(order); err != nil {
+	// 使用带租户上下文的方法
+	if err := h.orderRepo.CreateWithContext(c.Request.Context(), order); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建订单失败"})
 		return
 	}
@@ -104,7 +113,8 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 func (h *OrderHandler) AuditOrder(c *gin.Context) {
 	id := c.Param("id")
 
-	if err := h.orderRepo.UpdateStatus(id, models.OrderStatusPendingShip); err != nil {
+	// 使用带租户上下文的方法
+	if err := h.orderRepo.UpdateStatusWithContext(c.Request.Context(), id, models.OrderStatusPendingShip); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "审核失败"})
 		return
 	}
@@ -125,7 +135,8 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 		return
 	}
 
-	if err := h.orderRepo.Ship(id, req.LogisticsCompany, req.LogisticsNo); err != nil {
+	// 使用带租户上下文的方法
+	if err := h.orderRepo.ShipWithContext(c.Request.Context(), id, req.LogisticsCompany, req.LogisticsNo); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "发货失败"})
 		return
 	}

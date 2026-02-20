@@ -3,20 +3,26 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/MorantHP/OURERP/internal/middleware"
 	"github.com/MorantHP/OURERP/internal/models"
 	"github.com/MorantHP/OURERP/internal/platform"
 	"github.com/MorantHP/OURERP/internal/repository"
+	"github.com/MorantHP/OURERP/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
 type ShopHandler struct {
-	shopRepo *repository.ShopRepository
+	shopRepo    *repository.ShopRepository
+	syncService *services.SyncService
 }
 
-func NewShopHandler(shopRepo *repository.ShopRepository) *ShopHandler {
-	return &ShopHandler{shopRepo: shopRepo}
+func NewShopHandler(shopRepo *repository.ShopRepository, syncService *services.SyncService) *ShopHandler {
+	return &ShopHandler{
+		shopRepo:    shopRepo,
+		syncService: syncService,
+	}
 }
 
 // List 店铺列表
@@ -230,12 +236,32 @@ func (h *ShopHandler) TriggerSync(c *gin.Context) {
 		return
 	}
 
-	// TODO: 触发同步任务（需要集成SyncService）
-	// 这里应该调用SyncService来执行同步
+	// 检查是否有同步服务
+	if h.syncService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "同步服务未配置"})
+		return
+	}
+
+	// 默认同步最近7天的订单
+	endTime := time.Now()
+	startTime := endTime.AddDate(0, 0, -7)
+
+	// 执行同步
+	result, err := h.syncService.SyncShopOrders(c.Request.Context(), id, startTime, endTime)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":  "同步失败",
+			"detail": err.Error(),
+		})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "同步任务已启动",
-		"shop_id": id,
+		"message":     "同步完成",
+		"shop_id":     id,
+		"total_sync":  result.TotalSynced,
+		"total_fail":  result.TotalFailed,
+		"duration_ms": result.Duration.Milliseconds(),
 	})
 }
 

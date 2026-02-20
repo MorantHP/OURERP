@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/MorantHP/OURERP/internal/config"
 	"github.com/MorantHP/OURERP/internal/handlers"
@@ -18,13 +19,23 @@ func main() {
 	// 加载配置
 	cfg := config.Load()
 
+	// 验证配置
+	if err := cfg.Validate(); err != nil {
+		fmt.Printf("配置验证失败: %v\n", err)
+		os.Exit(1)
+	}
+
 	// 设置运行模式
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	// 初始化数据库
-	db := repository.InitDB(&cfg.Database)
+	db, err := repository.InitDB(&cfg.Database)
+	if err != nil {
+		fmt.Printf("数据库连接失败: %v\n", err)
+		os.Exit(1)
+	}
 
 	// 自动迁移
 	db.AutoMigrate(
@@ -101,10 +112,13 @@ func main() {
 	// 创建中间件
 	tenantMiddleware := middleware.NewTenantMiddleware(tenantRepo, tenantUserRepo)
 
+	// 创建同步服务
+	syncService := services.NewSyncService(orderRepo, shopRepo)
+
 	// 创建处理器
 	authHandler := handlers.NewAuthHandler(userRepo, cfg)
 	orderHandler := handlers.NewOrderHandler(orderRepo)
-	shopHandler := handlers.NewShopHandler(shopRepo)
+	shopHandler := handlers.NewShopHandler(shopRepo, syncService)
 	platformHandler := handlers.NewPlatformHandler()
 	tenantHandler := handlers.NewTenantHandler(tenantRepo, tenantUserRepo)
 	// 库存管理处理器
@@ -449,6 +463,19 @@ func seedDefaultUser(userRepo *repository.UserRepository) {
 		return // 已存在，跳过
 	}
 
+	// 从环境变量获取 root 密码，如果未设置则生成随机密码
+	rootPassword := os.Getenv("ROOT_PASSWORD")
+	if rootPassword == "" {
+		// 生产环境必须设置 ROOT_PASSWORD
+		if config.GlobalConfig.Env == "production" {
+			fmt.Println("错误: 生产环境必须设置 ROOT_PASSWORD 环境变量")
+			return
+		}
+		// 开发环境使用默认密码
+		rootPassword = "root123456"
+		fmt.Println("警告: 使用默认 root 密码，请在生产环境设置 ROOT_PASSWORD 环境变量")
+	}
+
 	// 创建 root 超级管理员
 	root := &models.User{
 		Email:      "root@ourerp.com",
@@ -457,7 +484,7 @@ func seedDefaultUser(userRepo *repository.UserRepository) {
 		IsApproved: true, // root 默认已审核
 		Status:     1,
 	}
-	if err := root.SetPassword("root123456"); err != nil {
+	if err := root.SetPassword(rootPassword); err != nil {
 		fmt.Println("Failed to set root password:", err)
 		return
 	}
@@ -467,6 +494,6 @@ func seedDefaultUser(userRepo *repository.UserRepository) {
 		return
 	}
 
-	fmt.Println("Root user created: root@ourerp.com / root123456")
-	fmt.Println("Please change the root password immediately after first login!")
+	fmt.Println("Root user created: root@ourerp.com")
+	fmt.Println("请登录后立即修改默认密码!")
 }

@@ -7,6 +7,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// OrderRepository 订单仓库
+// 注意：请始终使用带 Context 的方法（如 CreateWithContext, ListWithContext 等）
+// 这些方法会自动注入租户隔离条件，确保数据安全
 type OrderRepository struct {
 	db *gorm.DB
 }
@@ -15,6 +18,8 @@ func NewOrderRepository(db *gorm.DB) *OrderRepository {
 	return &OrderRepository{db: db}
 }
 
+// Create 创建订单（内部使用，建议使用 CreateWithContext）
+// Deprecated: 请使用 CreateWithContext 以确保租户隔离
 func (r *OrderRepository) Create(order *models.Order) error {
 	return r.db.Create(order).Error
 }

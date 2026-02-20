@@ -1,14 +1,35 @@
 package middleware
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/MorantHP/OURERP/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+// TokenBlacklist Token黑名单接口
+type TokenBlacklist interface {
+	Add(ctx context.Context, token string, expiration time.Duration) error
+	Exists(ctx context.Context, token string) (bool, error)
+}
+
+// AuthMiddleware 认证中间件增强版
+type AuthMiddleware struct {
+	blacklist TokenBlacklist
+}
+
+// NewAuthMiddleware 创建认证中间件
+func NewAuthMiddleware(blacklist TokenBlacklist) *AuthMiddleware {
+	return &AuthMiddleware{
+		blacklist: blacklist,
+	}
+}
 
 // CORS 跨域中间件 - 支持从环境变量配置允许的域名
 func CORS() gin.HandlerFunc {
@@ -63,14 +84,14 @@ func JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "未提供认证信息"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "未提供认证信息", "code": "AUTH_MISSING"})
 			c.Abort()
 			return
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "认证格式错误"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "认证格式错误", "code": "AUTH_FORMAT_ERROR"})
 			c.Abort()
 			return
 		}
@@ -84,7 +105,19 @@ func JWTAuth() gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "无效的token"})
+			errMsg := "无效的token"
+			code := "TOKEN_INVALID"
+			if errors.Is(err, jwt.ErrTokenExpired) {
+				errMsg = "Token已过期"
+				code = "TOKEN_EXPIRED"
+			} else if errors.Is(err, jwt.ErrTokenMalformed) {
+				errMsg = "Token格式错误"
+				code = "TOKEN_MALFORMED"
+			} else if errors.Is(err, jwt.ErrTokenNotValidYet) {
+				errMsg = "Token尚未生效"
+				code = "TOKEN_NOT_VALID_YET"
+			}
+			c.JSON(http.StatusUnauthorized, gin.H{"error": errMsg, "code": code})
 			c.Abort()
 			return
 		}
@@ -95,6 +128,110 @@ func JWTAuth() gin.HandlerFunc {
 			}
 			if email, ok := claims["email"]; ok {
 				c.Set("email", email.(string))
+			}
+		}
+
+		c.Next()
+	}
+}
+
+// JWTAuthWithBlacklist 带黑名单检查的JWT认证
+func (m *AuthMiddleware) JWTAuthWithBlacklist() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "未提供认证信息", "code": "AUTH_MISSING"})
+			c.Abort()
+			return
+		}
+
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "认证格式错误", "code": "AUTH_FORMAT_ERROR"})
+			c.Abort()
+			return
+		}
+
+		tokenString := parts[1]
+
+		// 检查黑名单
+		if m.blacklist != nil {
+			inBlacklist, err := m.blacklist.Exists(c.Request.Context(), tokenString)
+			if err == nil && inBlacklist {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Token已失效", "code": "TOKEN_REVOKED"})
+				c.Abort()
+				return
+			}
+		}
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			return []byte(config.GlobalConfig.JWT.Secret), nil
+		})
+
+		if err != nil || !token.Valid {
+			errMsg := "无效的token"
+			code := "TOKEN_INVALID"
+			if errors.Is(err, jwt.ErrTokenExpired) {
+				errMsg = "Token已过期"
+				code = "TOKEN_EXPIRED"
+			} else if errors.Is(err, jwt.ErrTokenMalformed) {
+				errMsg = "Token格式错误"
+				code = "TOKEN_MALFORMED"
+			}
+			c.JSON(http.StatusUnauthorized, gin.H{"error": errMsg, "code": code})
+			c.Abort()
+			return
+		}
+
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			if userID, ok := claims["user_id"]; ok {
+				c.Set("user_id", int64(userID.(float64)))
+			}
+			if email, ok := claims["email"]; ok {
+				c.Set("email", email.(string))
+			}
+			// 存储token以便后续可以将其加入黑名单
+			c.Set("token", tokenString)
+		}
+
+		c.Next()
+	}
+}
+
+// OptionalAuth 可选认证（不强制要求登录）
+func OptionalAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.Next()
+			return
+		}
+
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			c.Next()
+			return
+		}
+
+		tokenString := parts[1]
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			return []byte(config.GlobalConfig.JWT.Secret), nil
+		})
+
+		if err == nil && token.Valid {
+			if claims, ok := token.Claims.(jwt.MapClaims); ok {
+				if userID, ok := claims["user_id"]; ok {
+					c.Set("user_id", int64(userID.(float64)))
+				}
+				if email, ok := claims["email"]; ok {
+					c.Set("email", email.(string))
+				}
 			}
 		}
 

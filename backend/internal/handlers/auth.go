@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/MorantHP/OURERP/internal/config"
@@ -193,8 +194,8 @@ func (h *AuthHandler) ApproveUser(c *gin.Context) {
 		return
 	}
 
-	targetUserID := parseInt64(targetID)
-	if targetUserID == 0 {
+	targetUserID, err := parseInt64(targetID)
+	if err != nil || targetUserID == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的用户ID"})
 		return
 	}
@@ -246,8 +247,8 @@ func (h *AuthHandler) DeleteUser(c *gin.Context) {
 	}
 
 	targetID := c.Param("id")
-	targetUserID := parseInt64(targetID)
-	if targetUserID == 0 {
+	targetUserID, err := parseInt64(targetID)
+	if err != nil || targetUserID == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的用户ID"})
 		return
 	}
@@ -292,8 +293,8 @@ func (h *AuthHandler) SetUserStatus(c *gin.Context) {
 		return
 	}
 
-	targetUserID := parseInt64(targetID)
-	if targetUserID == 0 {
+	targetUserID, err := parseInt64(targetID)
+	if err != nil || targetUserID == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的用户ID"})
 		return
 	}
@@ -325,14 +326,8 @@ func (h *AuthHandler) SetUserStatus(c *gin.Context) {
 	})
 }
 
-func parseInt64(s string) int64 {
-	var result int64
-	for _, c := range s {
-		if c >= '0' && c <= '9' {
-			result = result*10 + int64(c-'0')
-		}
-	}
-	return result
+func parseInt64(s string) (int64, error) {
+	return strconv.ParseInt(s, 10, 64)
 }
 
 // generateToken 生成 JWT token

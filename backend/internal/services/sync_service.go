@@ -250,127 +250,50 @@ func (s *SyncService) fetchCustomPlatformOrders(ctx context.Context, shop *model
 
 // convertTaobaoOrder 转换淘宝订单
 func (s *SyncService) convertTaobaoOrder(po *platform.PlatformOrder, shopID int64) *models.Order {
-	status := s.mapTaobaoStatus(po.Status)
-
-	order := &models.Order{
-		Platform:        "taobao",
-		PlatformOrderID: po.PlatformOrderID,
-		ShopID:          shopID,
-		Status:          status,
-		TotalAmount:     po.TotalAmount,
-		PayAmount:       po.PayAmount,
-		BuyerNick:       po.BuyerNick,
-		ReceiverName:    po.ReceiverName,
-		ReceiverPhone:   po.ReceiverPhone,
-		ReceiverAddress: fmt.Sprintf("%s%s%s%s", po.ReceiverProvince, po.ReceiverCity, po.ReceiverDistrict, po.ReceiverAddress),
-		Items:           make([]models.OrderItem, len(po.Items)),
-	}
-
-	if !po.CreatedAt.IsZero() {
-		order.CreatedAt = po.CreatedAt
-	}
-	order.PaidAt = po.PaidAt
-	order.ShippedAt = po.ShippedAt
-
-	for i, item := range po.Items {
-		order.Items[i] = models.OrderItem{
-			SkuID:    0,
-			SkuName:  item.SkuName,
-			Quantity: item.Quantity,
-			Price:    item.Price,
-		}
-	}
-
-	return order
+	return s.convertPlatformOrder(po, shopID, "taobao", s.mapTaobaoStatus, true)
 }
 
 // convertDouyinOrder 转换抖音订单
 func (s *SyncService) convertDouyinOrder(po *platform.PlatformOrder, shopID int64) *models.Order {
-	status := s.mapDouyinStatus(po.Status)
-
-	order := &models.Order{
-		Platform:        "douyin",
-		PlatformOrderID: po.PlatformOrderID,
-		ShopID:          shopID,
-		Status:          status,
-		TotalAmount:     po.TotalAmount,
-		PayAmount:       po.PayAmount,
-		BuyerNick:       po.BuyerNick,
-		ReceiverName:    po.ReceiverName,
-		ReceiverPhone:   po.ReceiverPhone,
-		ReceiverAddress: fmt.Sprintf("%s%s%s%s", po.ReceiverProvince, po.ReceiverCity, po.ReceiverDistrict, po.ReceiverAddress),
-		Items:           make([]models.OrderItem, len(po.Items)),
-	}
-
-	if !po.CreatedAt.IsZero() {
-		order.CreatedAt = po.CreatedAt
-	}
-	order.PaidAt = po.PaidAt
-	order.ShippedAt = po.ShippedAt
-
-	for i, item := range po.Items {
-		order.Items[i] = models.OrderItem{
-			SkuID:    0,
-			SkuName:  item.SkuName,
-			Quantity: item.Quantity,
-			Price:    item.Price,
-		}
-	}
-
-	return order
+	return s.convertPlatformOrder(po, shopID, "douyin", s.mapDouyinStatus, true)
 }
 
 // convertKuaishouOrder 转换快手订单
 func (s *SyncService) convertKuaishouOrder(po *platform.PlatformOrder, shopID int64) *models.Order {
-	status := s.mapKuaishouStatus(po.Status)
-
-	order := &models.Order{
-		Platform:        "kuaishou",
-		PlatformOrderID: po.PlatformOrderID,
-		ShopID:          shopID,
-		Status:          status,
-		TotalAmount:     po.TotalAmount,
-		PayAmount:       po.PayAmount,
-		BuyerNick:       po.BuyerNick,
-		ReceiverName:    po.ReceiverName,
-		ReceiverPhone:   po.ReceiverPhone,
-		ReceiverAddress: po.ReceiverAddress,
-		Items:           make([]models.OrderItem, len(po.Items)),
-	}
-
-	if !po.CreatedAt.IsZero() {
-		order.CreatedAt = po.CreatedAt
-	}
-	order.PaidAt = po.PaidAt
-	order.ShippedAt = po.ShippedAt
-
-	for i, item := range po.Items {
-		order.Items[i] = models.OrderItem{
-			SkuID:    0,
-			SkuName:  item.SkuName,
-			Quantity: item.Quantity,
-			Price:    item.Price,
-		}
-	}
-
-	return order
+	return s.convertPlatformOrder(po, shopID, "kuaishou", s.mapKuaishouStatus, false)
 }
 
 // convertWechatVideoOrder 转换微信视频号订单
 func (s *SyncService) convertWechatVideoOrder(po *platform.PlatformOrder, shopID int64) *models.Order {
-	status := s.mapWechatVideoStatus(po.Status)
+	return s.convertPlatformOrder(po, shopID, "wechat_video", s.mapWechatVideoStatus, false)
+}
+
+// convertCustomOrder 转换自定义平台订单
+func (s *SyncService) convertCustomOrder(po *platform.PlatformOrder, shopID int64, platformName string) *models.Order {
+	return s.convertPlatformOrder(po, shopID, platformName, s.parseCustomStatusFunc, false)
+}
+
+// statusMapper 状态映射函数类型
+type statusMapper func(string) int
+
+// convertPlatformOrder 通用的平台订单转换函数
+func (s *SyncService) convertPlatformOrder(po *platform.PlatformOrder, shopID int64, platformName string, mapStatus statusMapper, concatAddress bool) *models.Order {
+	address := po.ReceiverAddress
+	if concatAddress {
+		address = fmt.Sprintf("%s%s%s%s", po.ReceiverProvince, po.ReceiverCity, po.ReceiverDistrict, po.ReceiverAddress)
+	}
 
 	order := &models.Order{
-		Platform:        "wechat_video",
+		Platform:        platformName,
 		PlatformOrderID: po.PlatformOrderID,
 		ShopID:          shopID,
-		Status:          status,
+		Status:          mapStatus(po.Status),
 		TotalAmount:     po.TotalAmount,
 		PayAmount:       po.PayAmount,
 		BuyerNick:       po.BuyerNick,
 		ReceiverName:    po.ReceiverName,
 		ReceiverPhone:   po.ReceiverPhone,
-		ReceiverAddress: po.ReceiverAddress,
+		ReceiverAddress: address,
 		Items:           make([]models.OrderItem, len(po.Items)),
 	}
 
@@ -392,38 +315,9 @@ func (s *SyncService) convertWechatVideoOrder(po *platform.PlatformOrder, shopID
 	return order
 }
 
-// convertCustomOrder 转换自定义平台订单
-func (s *SyncService) convertCustomOrder(po *platform.PlatformOrder, shopID int64, platformName string) *models.Order {
-	order := &models.Order{
-		Platform:        platformName,
-		PlatformOrderID: po.PlatformOrderID,
-		ShopID:          shopID,
-		Status:          s.parseCustomStatus(po.Status),
-		TotalAmount:     po.TotalAmount,
-		PayAmount:       po.PayAmount,
-		BuyerNick:       po.BuyerNick,
-		ReceiverName:    po.ReceiverName,
-		ReceiverPhone:   po.ReceiverPhone,
-		ReceiverAddress: po.ReceiverAddress,
-		Items:           make([]models.OrderItem, len(po.Items)),
-	}
-
-	if !po.CreatedAt.IsZero() {
-		order.CreatedAt = po.CreatedAt
-	}
-	order.PaidAt = po.PaidAt
-	order.ShippedAt = po.ShippedAt
-
-	for i, item := range po.Items {
-		order.Items[i] = models.OrderItem{
-			SkuID:    0,
-			SkuName:  item.SkuName,
-			Quantity: item.Quantity,
-			Price:    item.Price,
-		}
-	}
-
-	return order
+// parseCustomStatusFunc 用于自定义平台的状态映射
+func (s *SyncService) parseCustomStatusFunc(status string) int {
+	return s.parseCustomStatus(status)
 }
 
 // parseCustomStatus 解析自定义平台状态

@@ -154,14 +154,45 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
-  
-  if (!to.meta.public && !userStore.token) {
-    next('/login')
-  } else {
+
+  // 公开页面直接放行
+  if (to.meta.public) {
+    // 已登录用户访问登录页，重定向到首页
+    if (to.path === '/login' && userStore.token) {
+      next('/')
+      return
+    }
     next()
+    return
   }
+
+  // 需要认证的页面
+  if (!userStore.token) {
+    // 没有 token，跳转登录
+    next({ path: '/login', query: { redirect: to.fullPath } })
+    return
+  }
+
+  // 如果还未初始化用户信息，尝试获取
+  if (!userStore.isInitialized) {
+    try {
+      await userStore.init()
+    } catch {
+      // token 无效，跳转登录
+      next({ path: '/login', query: { redirect: to.fullPath } })
+      return
+    }
+  }
+
+  // 检查用户是否已审核
+  if (!userStore.isApproved && to.path !== '/tenants') {
+    // 未审核用户只能访问账套管理页
+    // 可以根据需要添加提示
+  }
+
+  next()
 })
 
 export default router
