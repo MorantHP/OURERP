@@ -1,4 +1,5 @@
 services:
+  # PostgreSQL 数据库
   postgres:
     image: postgres:15-alpine
     container_name: ourerp-postgres
@@ -16,6 +17,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis 缓存
   redis:
     image: redis:7-alpine
     container_name: ourerp-redis
@@ -28,6 +30,70 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # 后端服务（生产模式）
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ourerp-backend
+    environment:
+      - ENV=production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=ourerp
+      - DB_PASSWORD=ourerp_dev_2024
+      - DB_NAME=ourerp
+      - DB_SSLMODE=disable
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET:-change-this-in-production}
+      - JWT_EXPIRE=24
+      - CORS_ALLOWED_ORIGINS=${CORS_ORIGINS:-http://localhost:5173}
+      - ROOT_PASSWORD=${ROOT_PASSWORD:-change-this}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - production
+
+  # 后端服务（开发模式）
+  backend-dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: ourerp-backend-dev
+    environment:
+      - ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=ourerp
+      - DB_PASSWORD=ourerp_dev_2024
+      - DB_NAME=ourerp
+      - DB_SSLMODE=disable
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=dev-secret-key-at-least-32-characters
+      - JWT_EXPIRE=24
+      - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+      - ROOT_PASSWORD=root123456
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - development
 
 volumes:
   postgres_data:
