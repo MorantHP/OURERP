@@ -4,16 +4,16 @@ on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
 
 env:
-  GO_VERSION: '1.22'
-  NODE_VERSION: '20'
+  GO_VERSION: '1.21'
+  NODE_VERSION: '18'
 
 jobs:
-  # 后端测试
-  backend-test:
-    name: Backend Tests
+  # 后端代码检查和测试
+  backend:
+    name: Backend CI
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -32,22 +32,31 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      - name: Run go fmt
+        run: go fmt ./...
+
       - name: Run go vet
         run: go vet ./...
 
-      - name: Run tests
-        run: go test -v -race -coverprofile=coverage.out ./...
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          working-directory: backend
 
-      - name: Upload coverage
+      - name: Run unit tests
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           files: backend/coverage.out
           flags: backend
           fail_ci_if_error: false
 
-  # 前端测试和构建
-  frontend-build:
-    name: Frontend Build
+  # 前端代码检查和测试
+  frontend:
+    name: Frontend CI
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -67,53 +76,70 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run linter
-        run: npm run lint || true
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript check
+        run: npm run type-check
+        continue-on-error: true
+
+      - name: Run unit tests
+        run: npm run test:unit -- --coverage
+        continue-on-error: true
 
       - name: Build
         run: npm run build
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
         with:
-          name: frontend-dist
-          path: frontend/dist
-          retention-days: 7
+          files: frontend/coverage/lcov.info
+          flags: frontend
+          fail_ci_if_error: false
 
-  # 后端构建
-  backend-build:
-    name: Backend Build
+  # E2E 测试
+  e2e:
+    name: E2E Tests
     runs-on: ubuntu-latest
-    needs: backend-test
+    needs: [backend, frontend]
     defaults:
       run:
-        working-directory: backend
+        working-directory: frontend
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: backend/go.sum
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Build
-        run: CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ourerp-server ./cmd/server
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Upload build artifacts
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        continue-on-error: true
+
+      - name: Upload Playwright report
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: backend-binary
-          path: backend/ourerp-server
-          retention-days: 7
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 30
 
-  # Docker 构建（可选，需要配置Docker Hub）
-  docker-build:
-    name: Docker Build
+  # Docker 镜像构建
+  docker:
+    name: Build Docker Images
     runs-on: ubuntu-latest
-    needs: [backend-build, frontend-build]
+    needs: [backend, frontend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
@@ -123,52 +149,44 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub (optional)
-        if: ${{ secrets.DOCKER_USERNAME != '' }}
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Download frontend artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist
-
-      - name: Download backend artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-binary
-          path: backend
-
-      # 构建后端镜像
-      - name: Build backend image
+      - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          file: ./backend/Dockerfile
-          push: ${{ secrets.DOCKER_USERNAME != '' }}
-          tags: ${{ secrets.DOCKER_USERNAME || 'ourerp' }}/ourerp-backend:${{ github.sha }},${{ secrets.DOCKER_USERNAME || 'ourerp' }}/ourerp-backend:latest
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/ourerp-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-  # 部署到生产环境（需要配置服务器）
-  deploy:
-    name: Deploy
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/ourerp-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 依赖安全检查
+  security:
+    name: Security Scan
     runs-on: ubuntu-latest
-    needs: [docker-build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment: production
 
     steps:
-      - name: Deploy to server
-        if: ${{ secrets.DEPLOY_KEY != '' }}
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_KEY }}
-          script: |
-            cd /opt/ourerp
-            docker-compose pull
-            docker-compose up -d
-            docker system prune -f
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true

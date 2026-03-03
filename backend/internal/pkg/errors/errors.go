@@ -9,159 +9,71 @@ import (
 type AppError struct {
 	Code       string `json:"code"`
 	Message    string `json:"message"`
-	StatusCode int    `json:"-"`
-	Details    any    `json:"details,omitempty"`
-	Stack      string `json:"-"`
+	HTTPStatus int    `json:"-"`
+	Err        error  `json:"-"`
 }
 
 func (e *AppError) Error() string {
-	return fmt.Sprintf("[%s] %s", e.Code, e.Message)
-}
-
-// 预定义错误码
-const (
-	CodeSuccess          = "SUCCESS"
-	CodeBadRequest       = "BAD_REQUEST"
-	CodeUnauthorized     = "UNAUTHORIZED"
-	CodeForbidden        = "FORBIDDEN"
-	CodeNotFound         = "NOT_FOUND"
-	CodeConflict         = "CONFLICT"
-	CodeInternalError    = "INTERNAL_ERROR"
-	CodeServiceUnavailable = "SERVICE_UNAVAILABLE"
-	CodeValidationError  = "VALIDATION_ERROR"
-	CodeDatabaseError    = "DATABASE_ERROR"
-	CodeCacheError       = "CACHE_ERROR"
-	CodeExternalAPIError = "EXTERNAL_API_ERROR"
-)
-
-// NewAppError 创建应用错误
-func NewAppError(code string, message string, statusCode int) *AppError {
-	return &AppError{
-		Code:       code,
-		Message:    message,
-		StatusCode: statusCode,
+	if e.Err != nil {
+		return fmt.Sprintf("%s: %v", e.Message, e.Err)
 	}
+	return e.Message
 }
 
-// WithDetails 添加详情
-func (e *AppError) WithDetails(details any) *AppError {
-	e.Details = details
-	return e
+func (e *AppError) Unwrap() error {
+	return e.Err
 }
 
 // 预定义错误
+var (
+	// 通用错误
+	ErrBadRequest   = &AppError{Code: "BAD_REQUEST", Message: "请求参数错误", HTTPStatus: http.StatusBadRequest}
+	ErrUnauthorized = &AppError{Code: "UNAUTHORIZED", Message: "未授权访问", HTTPStatus: http.StatusUnauthorized}
+	ErrForbidden    = &AppError{Code: "FORBIDDEN", Message: "禁止访问", HTTPStatus: http.StatusForbidden}
+	ErrNotFound     = &AppError{Code: "NOT_FOUND", Message: "资源不存在", HTTPStatus: http.StatusNotFound}
+	ErrInternal     = &AppError{Code: "INTERNAL_ERROR", Message: "服务器内部错误", HTTPStatus: http.StatusInternalServerError}
 
-// BadRequest 错误请求
-func BadRequest(message string) *AppError {
-	return NewAppError(CodeBadRequest, message, http.StatusBadRequest)
-}
+	// 业务错误
+	ErrTenantNotSelected = &AppError{Code: "TENANT_NOT_SELECTED", Message: "请选择账套", HTTPStatus: http.StatusBadRequest}
+	ErrTenantNotFound    = &AppError{Code: "TENANT_NOT_FOUND", Message: "账套不存在", HTTPStatus: http.StatusNotFound}
+	ErrProductNotFound   = &AppError{Code: "PRODUCT_NOT_FOUND", Message: "商品不存在", HTTPStatus: http.StatusNotFound}
+	ErrProductDuplicate  = &AppError{Code: "PRODUCT_DUPLICATE", Message: "商品编码已存在", HTTPStatus: http.StatusBadRequest}
+	ErrOrderNotFound     = &AppError{Code: "ORDER_NOT_FOUND", Message: "订单不存在", HTTPStatus: http.StatusNotFound}
+	ErrInventoryNotEnough = &AppError{Code: "INVENTORY_NOT_ENOUGH", Message: "库存不足", HTTPStatus: http.StatusBadRequest}
+)
 
-// Unauthorized 未授权
-func Unauthorized(message string) *AppError {
-	if message == "" {
-		message = "未授权访问"
+// NewAppError 创建应用错误
+func NewAppError(code, message string, httpStatus int, err error) *AppError {
+	return &AppError{
+		Code:       code,
+		Message:    message,
+		HTTPStatus: httpStatus,
+		Err:        err,
 	}
-	return NewAppError(CodeUnauthorized, message, http.StatusUnauthorized)
 }
 
-// Forbidden 禁止访问
-func Forbidden(message string) *AppError {
-	if message == "" {
-		message = "禁止访问"
-	}
-	return NewAppError(CodeForbidden, message, http.StatusForbidden)
-}
-
-// NotFound 未找到
-func NotFound(resource string) *AppError {
-	return NewAppError(CodeNotFound, fmt.Sprintf("%s不存在", resource), http.StatusNotFound)
-}
-
-// Conflict 冲突
-func Conflict(message string) *AppError {
-	return NewAppError(CodeConflict, message, http.StatusConflict)
-}
-
-// InternalError 内部错误
-func InternalError(message string) *AppError {
-	return NewAppError(CodeInternalError, message, http.StatusInternalServerError)
-}
-
-// ValidationError 验证错误
-func ValidationError(message string, details any) *AppError {
-	return NewAppError(CodeValidationError, message, http.StatusBadRequest).WithDetails(details)
-}
-
-// DatabaseError 数据库错误
-func DatabaseError(message string) *AppError {
-	return NewAppError(CodeDatabaseError, message, http.StatusInternalServerError)
-}
-
-// ServiceUnavailable 服务不可用
-func ServiceUnavailable(message string) *AppError {
-	return NewAppError(CodeServiceUnavailable, message, http.StatusServiceUnavailable)
-}
-
-// ExternalAPIError 外部API错误
-func ExternalAPIError(service string, err error) *AppError {
-	return NewAppError(CodeExternalAPIError,
-		fmt.Sprintf("%s服务调用失败: %v", service, err),
-		http.StatusBadGateway)
-}
-
-// IsAppError 检查是否为应用错误
-func IsAppError(err error) bool {
-	_, ok := err.(*AppError)
-	return ok
-}
-
-// GetAppError 获取应用错误
-func GetAppError(err error) *AppError {
+// Wrap 包装错误
+func Wrap(err error, code, message string, httpStatus int) *AppError {
 	if appErr, ok := err.(*AppError); ok {
 		return appErr
 	}
-	return InternalError(err.Error())
+	return &AppError{
+		Code:       code,
+		Message:    message,
+		HTTPStatus: httpStatus,
+		Err:        err,
+	}
 }
 
-// 常用错误
-var (
-	ErrUserNotFound       = NotFound("用户")
-	ErrTenantNotFound     = NotFound("租户")
-	ErrShopNotFound       = NotFound("店铺")
-	ErrProductNotFound    = NotFound("商品")
-	ErrOrderNotFound      = NotFound("订单")
-	ErrWarehouseNotFound  = NotFound("仓库")
-	ErrInventoryNotFound  = NotFound("库存")
-	ErrSupplierNotFound   = NotFound("供应商")
-	ErrAlertRuleNotFound  = NotFound("预警规则")
+// WrapInternal 包装内部错误
+func WrapInternal(err error, message string) *AppError {
+	return Wrap(err, "INTERNAL_ERROR", message, http.StatusInternalServerError)
+}
 
-	ErrInvalidCredentials = Unauthorized("邮箱或密码错误")
-	ErrTokenExpired       = Unauthorized("登录已过期，请重新登录")
-	ErrTokenInvalid       = Unauthorized("无效的认证信息")
-	ErrPermissionDenied   = Forbidden("权限不足")
-
-	ErrEmailExists        = Conflict("邮箱已被注册")
-	ErrTenantCodeExists   = Conflict("租户编码已存在")
-
-	ErrNoTenantSelected   = BadRequest("请选择账套")
-	ErrTenantDisabled     = Forbidden("租户已禁用")
-
-	ErrUserNotApproved    = Forbidden("账户待审核，请等待管理员审核")
-	ErrUserDisabled       = Forbidden("账户已被禁用")
-)
-
-// Wrap 包装错误
-func Wrap(err error, message string) error {
-	if err == nil {
-		return nil
-	}
+// IsAppError 检查是否是应用错误
+func IsAppError(err error) (*AppError, bool) {
 	if appErr, ok := err.(*AppError); ok {
-		return &AppError{
-			Code:       appErr.Code,
-			Message:    fmt.Sprintf("%s: %s", message, appErr.Message),
-			StatusCode: appErr.StatusCode,
-			Details:    appErr.Details,
-		}
+		return appErr, true
 	}
-	return InternalError(fmt.Sprintf("%s: %v", message, err))
+	return nil, false
 }
