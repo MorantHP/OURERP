@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/MorantHP/OURERP/internal/config"
 	"github.com/MorantHP/OURERP/internal/handlers"
+	"github.com/MorantHP/OURERP/internal/kafka"
 	"github.com/MorantHP/OURERP/internal/middleware"
 	"github.com/MorantHP/OURERP/internal/mock"
 	"github.com/MorantHP/OURERP/internal/models"
@@ -450,9 +454,58 @@ func main() {
 		}
 	}
 
-	// 启动
+	// 启动Kafka消费者（如果配置了Kafka）
+	kafkaConfig := kafka.LoadConfig()
+	if len(kafkaConfig.Brokers) > 0 && kafkaConfig.Brokers[0] != "" {
+		go startKafkaConsumer(kafkaConfig, orderRepo, productRepo, shopRepo)
+	}
+
+	// 启动HTTP服务
 	addr := cfg.Server.Host + ":" + cfg.Server.Port
+	fmt.Printf("🚀 服务器启动: http://%s\n", addr)
 	r.Run(addr)
+}
+
+// startKafkaConsumer 启动Kafka订单消费者
+func startKafkaConsumer(kafkaConfig *kafka.Config, orderRepo *repository.OrderRepository, productRepo *repository.ProductRepository, shopRepo *repository.ShopRepository) {
+	// 创建生产者（用于死信队列）
+	producer, err := kafka.NewProducer(kafkaConfig)
+	if err != nil {
+		fmt.Printf("❌ Kafka生产者创建失败: %v\n", err)
+		return
+	}
+
+	// 创建ERP订单处理器
+	handler := kafka.NewERPOrderHandler(orderRepo, productRepo, shopRepo)
+
+	// 创建消费者
+	consumer, err := kafka.NewConsumer(kafkaConfig, handler, producer)
+	if err != nil {
+		fmt.Printf("❌ Kafka消费者创建失败: %v\n", err)
+		producer.Close()
+		return
+	}
+
+	// 创建上下文和信号处理
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// 处理信号
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigCh
+		fmt.Println("\n🛑 收到停止信号，正在关闭Kafka消费者...")
+		cancel()
+		consumer.Stop()
+		producer.Close()
+	}()
+
+	// 启动消费者
+	fmt.Printf("📥 Kafka消费者已启动，订阅Topics: %v\n", kafkaConfig.GetAllTopics())
+	if err := consumer.Start(ctx, kafkaConfig.GetAllTopics()); err != nil {
+		fmt.Printf("Kafka消费者错误: %v\n", err)
+	}
 }
 
 // seedDefaultUser 创建 root 超级管理员用户

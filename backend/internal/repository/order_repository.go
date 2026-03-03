@@ -224,3 +224,28 @@ func (r *OrderRepository) CountByTenantID(tenantID int64) (int64, error) {
 	err := r.db.Model(&models.Order{}).Where("tenant_id = ?", tenantID).Count(&count).Error
 	return count, err
 }
+
+// FindByPlatformOrderID 根据平台订单号查询
+func (r *OrderRepository) FindByPlatformOrderID(platformOrderID, platform string) (*models.Order, error) {
+	var order models.Order
+	err := r.db.Preload("Items").
+		Where("platform_order_id = ? AND platform = ?", platformOrderID, platform).
+		First(&order).Error
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
+// FindByPlatformOrderIDWithContext 根据平台订单号查询（带上下文）
+func (r *OrderRepository) FindByPlatformOrderIDWithContext(ctx context.Context, platformOrderID, platform string) (*models.Order, error) {
+	var order models.Order
+	err := r.db.WithContext(ctx).
+		Preload("Items").
+		Where("platform_order_id = ? AND platform = ?", platformOrderID, platform).
+		First(&order).Error
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}

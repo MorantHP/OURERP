@@ -198,7 +198,7 @@ func SQLInjectionCheck() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		// 检查查询参数
-		for key, values := range c.Request.URL.Query() {
+		for _, values := range c.Request.URL.Query() {
 			for _, value := range values {
 				for _, pattern := range sqlPatterns {
 					if pattern.MatchString(value) && !isSafeValue(value) {

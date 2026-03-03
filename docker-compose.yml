@@ -31,6 +31,61 @@ services:
       timeout: 5s
       retries: 5
 
+  # Zookeeper (Kafka依赖)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: ourerp-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+
+  # Kafka 消息队列
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: ourerp-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # Kafka UI (可选，用于管理查看)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: ourerp-kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "9000:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: ourerp-kafka
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    profiles:
+      - development
+
   # 后端服务（生产模式）
   backend:
     build:
@@ -47,6 +102,7 @@ services:
       - DB_SSLMODE=disable
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
       - JWT_SECRET=${JWT_SECRET:-change-this-in-production}
       - JWT_EXPIRE=24
       - CORS_ALLOWED_ORIGINS=${CORS_ORIGINS:-http://localhost:5173}
@@ -57,6 +113,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     restart: unless-stopped
     profiles:
@@ -78,6 +136,7 @@ services:
       - DB_SSLMODE=disable
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
       - JWT_SECRET=dev-secret-key-at-least-32-characters
       - JWT_EXPIRE=24
       - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
@@ -91,6 +150,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
     restart: unless-stopped
     profiles:
       - development
@@ -98,3 +159,6 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  zookeeper_data:
+  zookeeper_logs:
+  kafka_data:
