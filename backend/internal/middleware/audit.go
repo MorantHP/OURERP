@@ -34,8 +34,8 @@ type AuditLogger interface {
 // ConsoleAuditLogger 控制台审计日志
 type ConsoleAuditLogger struct{}
 
-func (l *ConsoleAuditLogger) Log(log *AuditLog) error {
-	data, _ := json.Marshal(log)
+func (l *ConsoleAuditLogger) Log(auditLog *AuditLog) error {
+	data, _ := json.Marshal(auditLog)
 	log.Printf("[AUDIT] %s", string(data))
 	return nil
 }

@@ -1,11 +1,11 @@
 package api
 
 import (
-	"github.com/MorantHP/OURERP/backend/internal/cache"
-	"github.com/MorantHP/OURERP/backend/internal/handlers"
-	"github.com/MorantHP/OURERP/backend/internal/middleware"
-	"github.com/MorantHP/OURERP/backend/internal/repository"
-	"github.com/MorantHP/OURERP/backend/internal/services"
+	"github.com/MorantHP/OURERP/internal/cache"
+	"github.com/MorantHP/OURERP/internal/handlers"
+	"github.com/MorantHP/OURERP/internal/middleware"
+	"github.com/MorantHP/OURERP/internal/repository"
+	"github.com/MorantHP/OURERP/internal/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -124,7 +124,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 			// 租户路由
 			tenantRepo := repository.NewTenantRepository(r.db)
 			tenantHandler := handlers.NewTenantHandler(tenantRepo)
-			
+
 			tenants := protected.Group("/tenants")
 			{
 				tenants.GET("", tenantHandler.List)
@@ -132,6 +132,17 @@ func (r *Router) Setup(engine *gin.Engine) {
 				tenants.POST("", tenantHandler.Create)
 				tenants.PUT("/:id", tenantHandler.Update)
 				tenants.DELETE("/:id", tenantHandler.Delete)
+			}
+
+			// API 同步路由（用于外部系统推送数据）
+			shopRepo := repository.NewShopRepository(r.db)
+			apiSyncService := services.NewApiSyncService(r.db, orderRepo, shopRepo, productRepo, r.cache)
+			apiSyncHandler := handlers.NewApiSyncHandler(apiSyncService)
+
+			sync := protected.Group("/sync")
+			{
+				sync.POST("/orders", apiSyncHandler.SyncOrders)
+				sync.GET("/statistics", apiSyncHandler.GetSyncStatistics)
 			}
 		}
 

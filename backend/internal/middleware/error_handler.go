@@ -4,8 +4,8 @@ import (
 	"log"
 	"runtime/debug"
 
-	"github.com/MorantHP/OURERP/backend/internal/pkg/errors"
-	"github.com/MorantHP/OURERP/backend/internal/pkg/response"
+	"github.com/MorantHP/OURERP/internal/pkg/errors"
+	"github.com/MorantHP/OURERP/internal/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 

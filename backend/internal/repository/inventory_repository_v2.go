@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/MorantHP/OURERP/backend/internal/models"
+	"github.com/MorantHP/OURERP/internal/models"
 	"gorm.io/gorm"
 )
 

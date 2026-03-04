@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 
-	"github.com/MorantHP/OURERP/backend/internal/cache"
-	"github.com/MorantHP/OURERP/backend/internal/models"
-	"github.com/MorantHP/OURERP/backend/internal/pkg/errors"
-	"github.com/MorantHP/OURERP/backend/internal/repository"
+	"github.com/MorantHP/OURERP/internal/cache"
+	"github.com/MorantHP/OURERP/internal/models"
+	"github.com/MorantHP/OURERP/internal/pkg/errors"
+	"github.com/MorantHP/OURERP/internal/repository"
 )
 
 // OrderService 订单服务
@@ -117,10 +117,8 @@ func (s *OrderService) ShipOrder(ctx context.Context, orderNo string, logisticsC
 
 	// 扣减库存（默认从第一个仓库扣减，实际应该根据业务逻辑确定）
 	tenantID := repository.GetTenantIDFromContext(ctx)
-	for _, item := range order.Items {
-		// 这里简化处理，实际应该根据商品找到对应仓库
-		// 扣减库存应该在 InventoryService 中处理
-	}
+	// 这里简化处理，实际应该根据商品找到对应仓库
+	// 扣减库存应该在 InventoryService 中处理
 
 	// 使缓存失效
 	_ = s.cacheDecorator.InvalidateOrderCache(ctx, tenantID)
@@ -141,7 +139,7 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderNo string, reason s
 	}
 
 	// 更新订单状态
-	if err := s.orderRepo.UpdateStatusWithContext(ctx, orderNo, models.OrderStatusCanceled); err != nil {
+	if err := s.orderRepo.UpdateStatusWithContext(ctx, orderNo, models.OrderStatusCancelled); err != nil {
 		return errors.WrapInternal(err, "取消订单失败")
 	}
 

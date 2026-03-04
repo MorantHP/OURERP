@@ -3,7 +3,7 @@ package response
 import (
 	"net/http"
 
-	"github.com/MorantHP/OURERP/backend/internal/pkg/errors"
+	"github.com/MorantHP/OURERP/internal/pkg/errors"
 	"github.com/gin-gonic/gin"
 )
 

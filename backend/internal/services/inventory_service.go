@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/MorantHP/OURERP/backend/internal/cache"
-	"github.com/MorantHP/OURERP/backend/internal/models"
-	"github.com/MorantHP/OURERP/backend/internal/pkg/errors"
-	"github.com/MorantHP/OURERP/backend/internal/repository"
+	"github.com/MorantHP/OURERP/internal/cache"
+	"github.com/MorantHP/OURERP/internal/models"
+	"github.com/MorantHP/OURERP/internal/pkg/errors"
+	"github.com/MorantHP/OURERP/internal/repository"
 	"gorm.io/gorm"
 )
 
@@ -54,7 +54,8 @@ func (s *InventoryService) AdjustInventory(ctx context.Context, productID, wareh
 			BeforeQty:   inventory.Quantity,
 			AfterQty:    inventory.Quantity + changeQty,
 			RefType:     refType,
-			RefID:       refID,
+			RefID:       0,
+			RefNo:       refID,
 			Remark:      remark,
 		}
 		return s.inventoryRepo.CreateLog(log)
@@ -136,7 +137,8 @@ func (s *InventoryService) TransferStock(ctx context.Context, productID, fromWar
 			BeforeQty:   fromInv.Quantity + qty,
 			AfterQty:    fromInv.Quantity,
 			RefType:     "transfer_out",
-			RefID:       refNo,
+			RefID:       0,
+			RefNo:       refNo,
 			Remark:      fmt.Sprintf("调拨至仓库%d: %s", toWarehouseID, refNo),
 		}
 		if err := tx.Create(outLog).Error; err != nil {
@@ -163,7 +165,8 @@ func (s *InventoryService) TransferStock(ctx context.Context, productID, fromWar
 			BeforeQty:   toInv.Quantity - qty,
 			AfterQty:    toInv.Quantity,
 			RefType:     "transfer_in",
-			RefID:       refNo,
+			RefID:       0,
+			RefNo:       refNo,
 			Remark:      fmt.Sprintf("从仓库%d调拨: %s", fromWarehouseID, refNo),
 		}
 		return tx.Create(inLog).Error

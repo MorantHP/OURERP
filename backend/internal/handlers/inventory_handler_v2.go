@@ -3,8 +3,8 @@ package handlers
 import (
 	"strconv"
 
-	"github.com/MorantHP/OURERP/backend/internal/pkg/response"
-	"github.com/MorantHP/OURERP/backend/internal/services"
+	"github.com/MorantHP/OURERP/internal/pkg/response"
+	"github.com/MorantHP/OURERP/internal/services"
 	"github.com/gin-gonic/gin"
 )
 

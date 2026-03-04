@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 
-	"github.com/MorantHP/OURERP/backend/internal/cache"
-	"github.com/MorantHP/OURERP/backend/internal/models"
-	"github.com/MorantHP/OURERP/backend/internal/pkg/errors"
-	"github.com/MorantHP/OURERP/backend/internal/repository"
+	"github.com/MorantHP/OURERP/internal/cache"
+	"github.com/MorantHP/OURERP/internal/models"
+	"github.com/MorantHP/OURERP/internal/pkg/errors"
+	"github.com/MorantHP/OURERP/internal/repository"
 )
 
 // ProductService 商品服务

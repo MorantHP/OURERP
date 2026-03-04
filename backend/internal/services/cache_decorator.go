@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/MorantHP/OURERP/backend/internal/cache"
+	"github.com/MorantHP/OURERP/internal/cache"
 )
 
 // CacheDecorator 缓存装饰器

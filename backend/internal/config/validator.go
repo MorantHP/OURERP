@@ -76,7 +76,7 @@ func validateDatabaseConfig() error {
 		return fmt.Errorf("database port is required")
 	}
 
-	if db.Name == "" {
+	if db.DBName == "" {
 		return fmt.Errorf("database name is required")
 	}
 

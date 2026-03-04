@@ -113,9 +113,6 @@ func main() {
 	// 数据中心仓库
 	datacenterRepo := repository.NewDatacenterRepository(db)
 
-	// 创建中间件
-	tenantMiddleware := middleware.NewTenantMiddleware(tenantRepo, tenantUserRepo)
-
 	// 创建同步服务
 	syncService := services.NewSyncService(orderRepo, shopRepo)
 
@@ -155,6 +152,10 @@ func main() {
 		compareAnalysisService,
 		alertService,
 	)
+
+	// API 同步服务（用于外部系统推送数据）
+	apiSyncService := services.NewApiSyncService(db, orderRepo, shopRepo, productRepo, nil)
+	apiSyncHandler := handlers.NewApiSyncHandler(apiSyncService)
 
 	// 初始化权限数据（权限和角色）
 	permissionService.SeedData()
@@ -254,7 +255,7 @@ func main() {
 
 			// 需要租户上下文的路由
 			tenantRequired := authorized.Group("/")
-			tenantRequired.Use(tenantMiddleware.Handle())
+			tenantRequired.Use(middleware.TenantMiddleware())
 			{
 				// 订单
 				tenantRequired.GET("/orders", orderHandler.ListOrders)
@@ -449,6 +450,13 @@ func main() {
 					datacenter.POST("/alerts/check", datacenterHandler.CheckAlerts)
 					datacenter.GET("/alerts/types", datacenterHandler.GetAlertTypes)
 					datacenter.GET("/alerts/levels", datacenterHandler.GetNotifyLevels)
+				}
+
+				// API 同步路由（用于外部系统推送数据）
+				sync := tenantRequired.Group("/sync")
+				{
+					sync.POST("/orders", apiSyncHandler.SyncOrders)
+					sync.GET("/statistics", apiSyncHandler.GetSyncStatistics)
 				}
 			}
 		}
